@@ -12,11 +12,8 @@ def custom_exception_handler(exc, context):
         custom_response = {
             "status": "error",
             "status_code": status.HTTP_401_UNAUTHORIZED,
-            "message": "Authentication failed",
-            "data": None,
-            "errors": {
-                "token": "Invalid or expired token"
-            }
+            "message": "Invalid or expired token",
+            "details": str(exc),
         }
         response.data = custom_response
         response.status_code = status.HTTP_401_UNAUTHORIZED
