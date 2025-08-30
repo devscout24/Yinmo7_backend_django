@@ -257,7 +257,7 @@ class AppleLoginView(APIView):
         decoded = jwt.decode(
             id_token,
             public_key,
-            audience=settings.APPLE_CLIENT_ID,  # Your app's bundle ID
+            audience=settings.APPLE_CLIENT_ID,
             algorithms=['RS256'],
             options={'verify_exp': True}
         )
