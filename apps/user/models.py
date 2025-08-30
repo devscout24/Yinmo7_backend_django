@@ -19,19 +19,26 @@ class UserManager(BaseUserManager):
     
 
 class User(AbstractBaseUser,PermissionsMixin):
-    full_name = models.CharField(max_length=100)
+    USER_TYPES = (
+        ('car_owner', 'Car Owner'),
+        ('repair_shop', 'Repair Shop'),
+        ('insurances_provider', 'Insurance Provider'),
+        ('repair_shop_employee', 'Repair Shop Employee'),
+    )
     email = models.EmailField(unique=True)
     apple_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
     google_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    
+    name = models.CharField(max_length=100, null=True, blank=True)
+    type = models.CharField(choices=USER_TYPES, max_length=100, default='car_owner')
 
     objects = UserManager()
-
     USERNAME_FIELD = 'email'
 
     def __str__(self):
-        return self.full_name
+        return self.email
     
 
 class UserOtp(models.Model):
@@ -40,3 +47,109 @@ class UserOtp(models.Model):
     otp = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class UserSocialAuth(models.Model):
+    PROVIDER =(
+        ('apple', 'Apple'),
+        ('google', 'Google'),
+    )
+    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name='social_auth')
+    id_token = models.CharField(max_length=100, null=True, blank=True)
+    provider = models.CharField(choices=PROVIDER, max_length=100, default='google')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+
+class CarOwnerProfile(models.Model):
+    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name='car_owner')
+    name = models.CharField(max_length=100, null=True, blank=True)
+    phone = models.CharField(max_length=100, null=True, blank=True)
+    location = models.CharField(max_length=100, null=True, blank=True)
+    image = models.FileField(upload_to='car_owner_profile_image', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.name:
+            self.user.name = self.name
+        super(CarOwnerProfile, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user.email}'s car owner profile name is {self.name}"
+    
+class CarModel(models.Model):
+    owner = models.ForeignKey(CarOwnerProfile,on_delete=models.CASCADE, related_name='car_models')
+    car_model = models.CharField(max_length=100, null=True, blank=True)
+    registration_no = models.CharField(max_length=100, null=True, blank=True)
+    vin = models.CharField(max_length=100, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self): 
+        return f"{self.owner.name }'s car model is {self.car_model}"
+
+
+
+class RepairShopProfile(models.Model):
+    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name='repair_shop')
+    shop_name = models.CharField(max_length=100, null=True, blank=True)
+    contact_person_name = models.CharField(max_length=100, null=True, blank=True)
+    phone = models.CharField(max_length=100, null=True, blank=True)
+    location = models.CharField(max_length=100, null=True, blank=True)
+    image = models.FileField(upload_to='repair_shop_profile_image', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.shop_name:
+            self.user.name = self.shop_name
+        super(RepairShopProfile, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user.email}'s repair shop name is {self.shop_name} contact person name is {self.contact_person_name}"
+
+class RepairShopImage(models.Model):
+    shop = models.ForeignKey(RepairShopProfile, on_delete=models.CASCADE, related_name='images')
+    image = models.ImageField(upload_to='repair_shop_images/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.shop.user.email}'s repair shop image"
+    
+
+class RepairshopBesinessHour(models.Model):
+    shop = models.ForeignKey(RepairShopProfile, on_delete=models.CASCADE, related_name='business_hours')
+    day = models.CharField(max_length=100, null=True, blank=True)
+    open_time = models.CharField(max_length=100, null=True, blank=True)
+    close_time = models.CharField(max_length=100, null=True, blank=True)
+    is_open = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.shop.user.email}'s repair shop business hours"
+    
+
+class InsuranceProviderProfile(models.Model):
+    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name='insurance_provider')
+    insurance_name = models.CharField(max_length=100, null=True, blank=True)
+    phone = models.CharField(max_length=100, null=True, blank=True)
+    address = models.CharField(max_length=100, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        if self.insurance_name:
+            self.user.name = self.insurance_name
+        super(InsuranceProviderProfile, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.user.email}'s insurance provider name is {self.insurance_name}"
+
+
+
+    
+
+                       
