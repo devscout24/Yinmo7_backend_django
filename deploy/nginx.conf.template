@@ -1,0 +1,71 @@
+server {
+    listen 80;
+    server_name {{domain}};
+
+    location /static/ {
+        alias /var/www/{{project}}/static/;
+    }
+
+    location /media/ {
+        alias /var/www/{{project}}/media/;
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/var/www/{{project}}/{{project}}.sock;
+    }
+}
+
+
+
+
+server {
+    listen 80;
+    server_name 148.230.111.82;
+
+    # Static files
+    location /static/ {
+        alias /var/www/ste_br_Webgenius0_backend_django/staticfiles/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Media files
+    location /media/ {
+        alias /var/www/ste_br_Webgenius0_backend_django/media/;
+        expires 30d;
+        add_header Cache-Control "public";
+    }
+
+    # Django application
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn.sock;
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+}
+
+
+
+server {
+    listen 80;
+    server_name 148.230.111.82 math-star.de;
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location /static/ {
+        root /var/www/ste_br_Webgenius0_backend_django/static/;
+    }
+
+    location /media/ {
+        root /var/www/ste_br_Webgenius0_backend_django/media/;
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn.sock;
+    }
+}

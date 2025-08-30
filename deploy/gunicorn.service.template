@@ -1,0 +1,13 @@
+[Unit]
+Description=Gunicorn daemon for {{project}}
+After=network.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/{{project}}/app
+Environment="PATH=/var/www/{{project}}/env/bin"
+ExecStart=/var/www/{{project}}/env/bin/gunicorn --workers 3 --bind unix:/var/www/{{project}}/{{project}}.sock {{django_app}}.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
