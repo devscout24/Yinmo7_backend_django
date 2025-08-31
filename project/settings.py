@@ -49,6 +49,8 @@ INSTALLED_APPS = [
     #local apps 
     'apps.authentication',
     'apps.user',
+    'apps.repair_shop',
+    'apps.message',
 
     # third party apps
     'rest_framework',
