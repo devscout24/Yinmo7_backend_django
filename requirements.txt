@@ -4,3 +4,4 @@ djangorestframework
 djangorestframework_simplejwt
 firebase_admin
 dotenv
+django-unfold
