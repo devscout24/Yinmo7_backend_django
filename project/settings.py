@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
 import os
@@ -41,6 +42,9 @@ INSTALLED_APPS = [
     'unfold',
     'unfold.contrib.filters',
     'unfold.contrib.forms',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -51,6 +55,10 @@ INSTALLED_APPS = [
     #local apps 
     'apps.authentication',
     'apps.user',
+    'apps.repair_shop',
+    'apps.message',
+    'apps.damage_analyze',
+    
 
     # third party apps
     'rest_framework',
@@ -66,10 +74,9 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    
-
 ]
 
 AUTH_USER_MODEL = "user.User"
@@ -186,6 +193,11 @@ APPLE_CLIENT_ID = os.environ.get('APPLE_CLIENT_ID')
 
 # DATABASE SETTINGS
 
+# django-allauth custom user model settings (updated for deprecation warnings)
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+
 if DEBUG:
     DATABASES = {
         'default': {
@@ -217,7 +229,11 @@ else:
     STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET_PROD')
     STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY_PROD')
 
-
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),  
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30), 
+    
+}
 
 UNFOLD = {
     "SITE_TITLE": os.environ.get('SITE_TITLE'),

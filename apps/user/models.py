@@ -62,7 +62,7 @@ class UserSocialAuth(models.Model):
 
 
 class CarOwnerProfile(models.Model):
-    user = models.OneToOneField(User,on_delete=models.CASCADE, related_name='car_owner')
+    user = models.OneToOneField(User,on_delete=models.CASCADE, null=True,blank=True, related_name='car_owner')
     name = models.CharField(max_length=100, null=True, blank=True)
     phone = models.CharField(max_length=100, null=True, blank=True)
     location = models.CharField(max_length=100, null=True, blank=True)
