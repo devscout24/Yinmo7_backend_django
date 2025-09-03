@@ -32,7 +32,7 @@ class User(AbstractBaseUser,PermissionsMixin):
     is_staff = models.BooleanField(default=False)
     
     name = models.CharField(max_length=100, null=True, blank=True)
-    type = models.CharField(choices=USER_TYPES, max_length=100, default='car_owner')
+    type = models.CharField(choices=USER_TYPES, max_length=100,null=False, blank=False)
 
     objects = UserManager()
     USERNAME_FIELD = 'email'
@@ -98,8 +98,17 @@ class RepairShopProfile(models.Model):
     phone = models.CharField(max_length=100, null=True, blank=True)
     location = models.CharField(max_length=100, null=True, blank=True)
     image = models.FileField(upload_to='repair_shop_profile_image', null=True, blank=True)
+    total_reviews = models.IntegerField(default=0)
+    total_stars = models.IntegerField(default=0)
+    rating = models.FloatField(null=True, blank=True)  
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    @property
+    def calculated_rating(self):
+        if self.total_reviews > 0:
+            return self.total_stars / self.total_reviews
+        return None
 
     def save(self, *args, **kwargs):
         if self.shop_name:

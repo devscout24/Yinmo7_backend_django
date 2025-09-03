@@ -6,10 +6,10 @@ from dj_rest_auth.registration.serializers import SocialLoginSerializer
 
 class SignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-
+    type = serializers.ChoiceField(choices=User.USER_TYPES)
     class Meta:
         model = User
-        fields = ('name', 'email', 'password')
+        fields = ('name', 'email', 'password', 'type')
 
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
@@ -17,6 +17,7 @@ class SignupSerializer(serializers.ModelSerializer):
 class SigninSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
+    
 
     def validate(self, data):
         user = authenticate(email=data['email'], password=data['password'])

@@ -14,19 +14,22 @@ class AppointmentRequest(models.Model):
     STATUS = (
         ('awaiting', 'Awaiting'),
         ('confirmed', 'Confirmed'),
-        ('decline', 'Decline'),
+        ('declined', 'Declined'),
         ('cancelled', 'Cancelled'),
         ('completed', 'Completed'),
         ('accepted', 'Accepted'),
         ('pending', 'Pending'), 
+        ('cancelled', 'Cancelled'),
     )
     car_owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shop_appointment_requests')
     repair_shop = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointment_requests')
     date = models.DateField()
     time = models.TimeField()
-    status = models.CharField(choices=STATUS, max_length=100, default='pending')
+    status = models.CharField(choices=STATUS, max_length=100, default='awaiting')
     car_model = models.CharField(max_length=100, null=True, blank=True)
     issue = models.TextField(null=True, blank=True)
+    review = models.TextField(null=True, blank=True)
+    star = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

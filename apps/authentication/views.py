@@ -81,7 +81,13 @@ class SigninView(APIView):
             "status_code": status.HTTP_200_OK,
             "message": "User logged in successfully",
             "refresh": str(refresh),
-            "access": str(refresh.access_token)
+            "access": str(refresh.access_token),
+            "data":{
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "type": user.type
+            }
         }
         return Response(response, status=status.HTTP_200_OK)
 
