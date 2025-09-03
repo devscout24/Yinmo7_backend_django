@@ -77,7 +77,6 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "drf_response_wrapper.middleware.APIResponseWrapperMiddleware",
 ]
 
 AUTH_USER_MODEL = "user.User"
