@@ -4,7 +4,10 @@ from openai import OpenAI
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .serializer import AppointmentRequestSerializer,RepairShopProfileSerializer,DamageAnalyzeSerializer
+
+from apps import user
+from apps.repair_shop.models import AppointmentRequest
+from .serializer import AppointmentRequestSerializer,RepairShopProfileSerializer,DamageAnalyzeSerializer,ReviewSerializer
 from apps.user.models import RepairShopProfile
 from .models import DamageAnalyze, Damage
 from rest_framework import status
@@ -84,7 +87,9 @@ class DamageAnalysisView(APIView):
                     analysis_data = json.loads(analysis_text)
             except json.JSONDecodeError:
                 return Response({
-                    "error": "Failed to parse AI response as JSON",
+                    "status": "error",
+                    "status_code": 500,
+                    "message": "Failed to parse AI response as JSON",
                     "raw_response": analysis_text
                 }, status=500)
 
@@ -109,14 +114,27 @@ class DamageAnalysisView(APIView):
                     estimated_cost_max=part.get("estimated_cost_max"),
                 )
 
-            return Response(analysis_data)
+            return Response({
+                "status": "success",
+                "status_code": 200,
+                "message": "Analysis completed successfully.",
+                "data": analysis_data
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return self.response_error(f"OpenAI API request failed: {str(e)}", status=500)
+            return Response({
+                "status": "error",
+                "status_code": 500,
+                "message": f"OpenAI API request failed: {str(e)}"
+            }, status=500)
 
     def response_error(self, message, status=400):
         from rest_framework.response import Response
-        return Response({"error": message}, status=status)
+        return Response({
+            "status": "error",
+            "status_code": status,
+            "message": message
+        }, status=status)
     
 
 class ShowEstimateList(APIView):
@@ -126,7 +144,12 @@ class ShowEstimateList(APIView):
         user = request.user
         estimates = DamageAnalyze.objects.filter(car_owner=user)
         serializer = DamageAnalyzeSerializer(estimates, many=True)
-        return Response(serializer.data)
+        return Response({
+            "status": "success",
+            "status_code": 200,
+            "message": "Estimates fetched successfully.",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
 
 
 class DeleteItemsFromEstimateList(APIView):
@@ -136,7 +159,11 @@ class DeleteItemsFromEstimateList(APIView):
         item_ids = request.data.get("item_ids", [])
 
         if not item_ids:
-            return Response({"error": "No item_ids provided"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({
+                "status": "error",
+                "status_code": status.HTTP_400_BAD_REQUEST,
+                "message": "No item_ids provided"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         deleted_count, _ = Damage.objects.filter(
             id__in=item_ids,
@@ -144,15 +171,17 @@ class DeleteItemsFromEstimateList(APIView):
         ).delete()
 
         if deleted_count == 0:
-            return Response(
-                {"message": "No items deleted. They may not exist or don’t belong to you."},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({
+                "status": "error",
+                "status_code": status.HTTP_404_NOT_FOUND,
+                "message": "No items deleted. They may not exist or don’t belong to you."
+            }, status=status.HTTP_404_NOT_FOUND)
 
-        return Response(
-            {"message": f"{deleted_count} item(s) deleted successfully"},
-            status=status.HTTP_200_OK
-        )         
+        return Response({
+            "status": "success",
+            "status_code": status.HTTP_200_OK,
+            "message": f"{deleted_count} item(s) deleted successfully"
+        }, status=status.HTTP_200_OK)
     
 
 
@@ -164,7 +193,11 @@ class CreateBookingView(APIView):
         data['car_owner'] = request.user.id
         shop_id = request.data.get('shop_id')
         if shop_id:
-            data['repair_shop'] = shop_id
+            try:
+                repair_shop = RepairShopProfile.objects.get(id=shop_id)
+                data['repair_shop'] = shop_id
+            except RepairShopProfile.DoesNotExist:
+                return Response({'error': 'Repair shop not found.'}, status=404)
         serializer = AppointmentRequestSerializer(data=data)
         if serializer.is_valid():
             booking = serializer.save()
@@ -172,23 +205,47 @@ class CreateBookingView(APIView):
         return Response(serializer.errors, status=400)
     
 
+class ListOfCarOwnerBooking(APIView):
+    permission_classes = [IsAuthenticated, IsCarOwner]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        bookings = AppointmentRequest.objects.filter(car_owner=user)
+        serializer = AppointmentRequestSerializer(bookings, many=True)
+        return Response(serializer.data)
 
 
 #============================================== Need To Test ===============================================
+class DeleteAllEstimate(APIView):
+    permission_classes = [IsAuthenticated, IsCarOwner]
+
+    def delete(self, request, *args, **kwargs):
+        user = request.user
+        Damage.objects.filter(analyze__car_owner=user).delete()
+        return Response({"message": "All estimates deleted successfully"}, status=204)
+
 class CreateReviewView(APIView):
     permission_classes = [IsAuthenticated, IsCarOwner]
 
     def post(self, request, *args, **kwargs):
+        data = request.data.get('review', {})
+        data['owner'] = request.user.id
+        shop = kwargs.get('shop')
+        if shop:
+            data['repair_shop'] = shop
+
+    def post(self, request, *args, **kwargs):
         data = request.data.copy()
-        data['car_owner'] = request.user.id
-        shop_id = request.data.get('shop_id')
+        data['owner'] = request.user.id
+        shop_id = kwargs.get('shop_id') or kwargs.get('shop')
         if shop_id:
-            data['repair_shop'] = shop_id
-        serializer = AppointmentRequestSerializer(data=data)
+            data['shop'] = shop_id
+        serializer = ReviewSerializer(data=data, context={'request': request})
         if serializer.is_valid():
             booking = serializer.save()
-            return Response(AppointmentRequestSerializer(booking).data, status=201)
+            return Response(ReviewSerializer(booking).data, status=201)
         return Response(serializer.errors, status=400)
+    
 
 class ListOfRepairShop(APIView):
     permission_classes = [IsAuthenticated]

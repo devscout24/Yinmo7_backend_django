@@ -28,8 +28,6 @@ class AppointmentRequest(models.Model):
     status = models.CharField(choices=STATUS, max_length=100, default='awaiting')
     car_model = models.CharField(max_length=100, null=True, blank=True)
     issue = models.TextField(null=True, blank=True)
-    review = models.TextField(null=True, blank=True)
-    star = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -76,12 +74,31 @@ class Notification(models.Model):
 class Review(models.Model):
     shop = models.ForeignKey(User, on_delete=models.CASCADE, related_name='shop_reviews')
     owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='owner_reviews')
+    review = models.TextField()
+    star = models.IntegerField()
     rating = models.IntegerField(null=True, blank=True)
-    comment = models.TextField(null=True, blank=True)
+    total_reviews = models.IntegerField(null=True, blank=True)
+    total_stars = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    five_star_reviews = models.IntegerField(default=0)
+    four_star_reviews = models.IntegerField(default=0)
+    three_star_reviews = models.IntegerField(default=0)
+    two_star_reviews = models.IntegerField(default=0)
+    one_star_reviews = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.owner.email}'s review" 
 
 
+
+class HelpAndSupport(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='help_and_supports')
+    subject = models.CharField(max_length=200)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.subject}"

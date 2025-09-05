@@ -1,29 +1,31 @@
 from rest_framework import serializers
-from apps.repair_shop.models import AppointmentRequest
+from apps.repair_shop.models import AppointmentRequest,Review
 from apps.user.models import RepairShopProfile
 from .models import Damage, DamageAnalyze
 
 
 
-class AppointmentRequestSerializer(serializers.ModelSerializer):
+class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
-        model = AppointmentRequest
+        model = Review
         fields = '__all__'
-        extra_kwargs = {
-            'review': {'required': True},
-            'star': {'required': True}
-        }
 
     def create(self, validated_data):
         appointment = super().create(validated_data)
         user = self.context['request'].user
         star = validated_data.get('star', 0)
         from django.db.models import F
-        RepairShopProfile.objects.filter(user=user).update(
+        Review.objects.filter(user=user).update(
             total_reviews=F('total_reviews') + 1,
-            total_stars=F('total_stars') + star
+            total_stars=F('total_stars') + star,
+            rating=F('total_stars') / F('total_reviews')
         )
         return appointment
+
+class AppointmentRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AppointmentRequest
+        fields = '__all__'
 
 class RepairShopProfileSerializer(serializers.Serializer):
     class Meta:

@@ -28,6 +28,7 @@ google-resumable-media==2.7.2
 googleapis-common-protos==1.70.0
 grpcio==1.74.0
 grpcio-status==1.74.0
+gunicorn==23.0.0
 h11==0.16.0
 h2==4.3.0
 hpack==4.1.0
@@ -38,6 +39,7 @@ idna==3.10
 jiter==0.10.0
 msgpack==1.1.1
 openai==1.102.0
+packaging==25.0
 pillow==11.3.0
 proto-plus==1.26.1
 protobuf==6.32.0
@@ -57,3 +59,4 @@ typing-inspection==0.4.1
 typing_extensions==4.15.0
 tzdata==2025.2
 urllib3==2.5.0
+waitress==3.0.2

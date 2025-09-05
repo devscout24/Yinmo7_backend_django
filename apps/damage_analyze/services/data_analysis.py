@@ -20,10 +20,8 @@ class OpenAIService(APIView):
             return self.response_error("Image file is required in form-data with key 'image'.", status=400)
 
         try:
-            # Encode image to base64
             base64_image = base64.b64encode(image_file.read()).decode('utf-8')
 
-            # Prepare the prompt for car damage analysis
             prompt = """
             Analyze this car damage image and provide a detailed assessment in JSON format.
             The JSON should include:
@@ -46,9 +44,8 @@ class OpenAIService(APIView):
             Return ONLY valid JSON, no additional text.
             """
 
-            # Using the new responses.create method (for newer OpenAI API versions)
             response = self.client.responses.create(
-                model="gpt-4.1-mini",  # Use "gpt-5" when available
+                model="gpt-4.1-mini",
                 input=[
                     {
                         "role": "user",
@@ -66,13 +63,10 @@ class OpenAIService(APIView):
                 ]
             )
 
-            # Extract the response text
             analysis_text = response.output_text
 
-            # Try to parse the JSON response
             from rest_framework.response import Response
             try:
-                # Clean the response text to extract JSON
                 json_start = analysis_text.find('{')
                 json_end = analysis_text.rfind('}') + 1
 
@@ -80,10 +74,8 @@ class OpenAIService(APIView):
                     json_str = analysis_text[json_start:json_end]
                     return Response(json.loads(json_str))
                 else:
-                    # If no JSON found, try to parse the whole response
                     return Response(json.loads(analysis_text))
             except json.JSONDecodeError:
-                # Fallback: return the raw text if JSON parsing fails
                 return Response({
                     "error": "Failed to parse AI response as JSON",
                     "raw_response": analysis_text

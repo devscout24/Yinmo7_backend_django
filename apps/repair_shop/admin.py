@@ -16,6 +16,6 @@ class NotificationAdmin(admin.ModelAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ('id', 'shop', 'owner', 'rating', 'comment', 'created_at', 'updated_at')
-    search_fields = ('shop__email', 'owner__email', 'comment')
+    list_display = ('id', 'shop', 'owner', 'review', 'star', 'rating', 'total_reviews', 'total_stars', 'created_at', 'updated_at')
+    search_fields = ('shop__email', 'owner__email', 'review')
     list_filter = ('rating',)

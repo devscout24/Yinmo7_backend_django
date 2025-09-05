@@ -14,7 +14,12 @@ class AppointmentList(APIView):
     def get(self, request):
         bookings = AppointmentRequest.objects.filter(repair_shop=request.user)
         serializer = AppointmentRequestSerializer(bookings, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({
+            "status": "success",
+            "status_code": status.HTTP_200_OK,
+            "message": "Appointments fetched successfully.",
+            "data": serializer.data
+        }, status=status.HTTP_200_OK)
     
 
 class AcceptAppointment(APIView):
@@ -24,12 +29,20 @@ class AcceptAppointment(APIView):
         try:
             appointment = AppointmentRequest.objects.get(id=appointment_id)
         except AppointmentRequest.DoesNotExist:
-            return Response({"error": "Appointment not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({
+                "status": "error",
+                "status_code": status.HTTP_404_NOT_FOUND,
+                "message": "Appointment not found."
+            }, status=status.HTTP_404_NOT_FOUND)
 
         appointment.status = "accepted"
         appointment.save()
 
-        return Response({"message": "Appointment accepted successfully."}, status=status.HTTP_200_OK)
+        return Response({
+            "status": "success",
+            "status_code": status.HTTP_200_OK,
+            "message": "Appointment accepted successfully."
+        }, status=status.HTTP_200_OK)
     
 
 class RejectAppointment(APIView):
@@ -39,12 +52,20 @@ class RejectAppointment(APIView):
         try:
             appointment = AppointmentRequest.objects.get(id=appointment_id)
         except AppointmentRequest.DoesNotExist:
-            return Response({"error": "Appointment not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({
+                "status": "error",
+                "status_code": status.HTTP_404_NOT_FOUND,
+                "message": "Appointment not found."
+            }, status=status.HTTP_404_NOT_FOUND)
 
         appointment.status = "declined"
         appointment.save()
 
-        return Response({"message": "Appointment rejected successfully."}, status=status.HTTP_200_OK)
+        return Response({
+            "status": "success",
+            "status_code": status.HTTP_200_OK,
+            "message": "Appointment rejected successfully."
+        }, status=status.HTTP_200_OK)
 
     
 class CompleteAppointment(APIView):
@@ -54,9 +75,17 @@ class CompleteAppointment(APIView):
         try:
             appointment = AppointmentRequest.objects.get(id=appointment_id)
         except AppointmentRequest.DoesNotExist:
-            return Response({"error": "Appointment not found."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({
+                "status": "error",
+                "status_code": status.HTTP_404_NOT_FOUND,
+                "message": "Appointment not found."
+            }, status=status.HTTP_404_NOT_FOUND)
 
         appointment.status = "completed"
         appointment.save()
 
-        return Response({"message": "Appointment completed successfully."}, status=status.HTTP_200_OK)
+        return Response({
+            "status": "success",
+            "status_code": status.HTTP_200_OK,
+            "message": "Appointment completed successfully."
+        }, status=status.HTTP_200_OK)

@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from .serializers import SignupSerializer
 from django.contrib.auth import get_user_model
-User = get_user_model()
 from django.conf import settings
 from django.core.mail import send_mail
 import random
@@ -21,9 +20,8 @@ import json
 from jwt.algorithms import RSAAlgorithm
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth import update_session_auth_hash
-
 from .firebase_config import initialize_firebase
-
+User = get_user_model()
 
 
 
@@ -91,7 +89,7 @@ class SigninView(APIView):
         }
         return Response(response, status=status.HTTP_200_OK)
 
-class RequestForgetPasswordView(APIView):
+class ForgetPasswordView(APIView):
     def post(self, request):
         email = request.data.get("email")
         try:
@@ -126,60 +124,71 @@ class RequestForgetPasswordView(APIView):
 class VerifyOTPView(APIView):
     def post(self, request):
         otp = request.data.get("otp")
-        token = request.data.get("token")
-        if not all([otp, token]):
-            errpr_response = {
+        
+        if not otp:
+            error_response = {
                 "status": "error",
                 "status_code": status.HTTP_400_BAD_REQUEST,
-                "message": "OTP and token are required."
+                "message": "OTP is required."
             }
-            return Response(errpr_response, status=status.HTTP_400_BAD_REQUEST)
+            return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
 
-        match = get_object_or_404(UserOtp, token=token, otp=otp)
+        match = get_object_or_404(UserOtp, otp=otp)
         if match:
             expiry_time = match.updated_at + timedelta(minutes=2)
             if timezone.now() > expiry_time:
-                errpr_response = {
+                error_response = {
                     "status": "error",
                     "status_code": status.HTTP_400_BAD_REQUEST,
                     "message": "OTP has expired."
                 }
-                return Response(errpr_response, status=status.HTTP_400_BAD_REQUEST)
-            respomse = {
+                return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+            response = {
                 "status": "success",
                 "status_code": status.HTTP_200_OK,
                 "message": "OTP verified successfully.",
                 "token": match.token
             }
-            
-            return Response(respomse, status=status.HTTP_200_OK)
+
+            return Response(response, status=status.HTTP_200_OK)
         else:
-            errpr_response = {
+            error_response = {
                 "status": "error",
                 "status_code": status.HTTP_400_BAD_REQUEST,
                 "message": "Invalid OTP."
             }
+            return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
 
-            return Response(errpr_response, status=status.HTTP_400_BAD_REQUEST)
-
-class ForgetPasswordView(APIView):
+class SetNewPasswordView(APIView):
     def post(self, request):
-        password = request.data.get("password")
+        new_password = request.data.get("new_password")
+        confirm_password = request.data.get("confirm_password")
         token = request.data.get("token")
 
         try:
             obj = UserOtp.objects.get(token=token)
         except UserOtp.DoesNotExist:
-            errpr_response = {
+            error_response = {
                 "status": "error",
                 "status_code": status.HTTP_404_NOT_FOUND,
                 "message": "Invalid or not given token."
             }
-            return Response(errpr_response, status=status.HTTP_404_NOT_FOUND)
-        if not password:
-            
-            return Response({"error": "Password is required."}, status=400)
-        obj.user.set_password(password)
+            return Response(error_response, status=status.HTTP_404_NOT_FOUND)
+        if not new_password:
+            error_response = {
+                "status": "error",
+                "status_code": status.HTTP_400_BAD_REQUEST,
+                "message": "New password is required."
+            }
+            return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+        if new_password != confirm_password:
+            error_response = {
+                "status": "error",
+                "status_code": status.HTTP_400_BAD_REQUEST,
+                "message": "Passwords do not match."
+            }
+            return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+        obj.user.set_password(new_password)
         obj.user.save()
         obj.delete()
         response = {
@@ -194,7 +203,9 @@ class ForgetPasswordView(APIView):
 
 class AppleLoginView(APIView):
     def post(self, request):
-        # Step 1: Get id_token from Flutter request body
+        """
+        Step 1: Get id_token from Flutter request body
+        """
         id_token = request.data.get('id_token')
         if not id_token:
             error_response = {
@@ -208,10 +219,8 @@ class AppleLoginView(APIView):
             # Step 2: Verify the id_token with Apple's servers
             decoded = self.verify_apple_token(id_token)
             
-            # Step 3: Get or create user in your database
             user, created = self.get_or_create_user(decoded)
             refresh = RefreshToken.for_user(user)
-            # Step 4: Return your authentication response
             return Response({
                 'status': 'success',
                 "status_code": status.HTTP_200_OK,
@@ -243,14 +252,17 @@ class AppleLoginView(APIView):
                 "message": "Authentication failed.",
                 'detail': str(e)
             }
-            return Response(error_response, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+            return Response({
+                "status": "error",
+                "status_code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                "message": "Authentication failed.",
+                'detail': str(e)
+            })
+
     def verify_apple_token(self, id_token):
-        # Step 1: Get Apple's public keys
         header = jwt.get_unverified_header(id_token)
         apple_public_keys = requests.get('https://appleid.apple.com/auth/keys').json()
         
-        # Step 2: Find the matching key
         public_key = None
         for key in apple_public_keys['keys']:
             if key['kid'] == header['kid']:
@@ -260,7 +272,6 @@ class AppleLoginView(APIView):
         if not public_key:
             raise ValueError('Apple public key not found')
         
-        # Step 3: Verify the token
         decoded = jwt.decode(
             id_token,
             public_key,
@@ -275,14 +286,9 @@ class AppleLoginView(APIView):
         apple_id = decoded_data['sub']
         email = decoded_data.get('email')
         
-        
-        # Try to find existing user
         user = User.objects.filter(apple_id=apple_id).first()
         if user:
             return user, False
-        
-        # Create new user if not exists
-        pass
 
         user = User.objects.create_user(
             email=email,
@@ -293,18 +299,14 @@ class AppleLoginView(APIView):
         if full_name:
             user.full_name = full_name
             user.save()
-        
         return user, True
     
 
-
-
 class GoogleLoginView(APIView):
     def post(self, request):
-        # Initialize Firebase
         initialize_firebase()
-        
-        # Get the access token from frontend
+    
+        """Get the access token from frontend"""
         access_token = request.data.get('id_token')
         if not access_token:
             error_response = {
@@ -315,10 +317,8 @@ class GoogleLoginView(APIView):
             return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
         
         try:
-            # Verify the token with Google's API
             user_info = self.verify_google_token(access_token)
             
-            # Get or create user
             user, created = self.get_or_create_user(user_info)
             refresh = RefreshToken.for_user(user)
             
@@ -340,7 +340,6 @@ class GoogleLoginView(APIView):
             return Response(error_response, status=status.HTTP_401_UNAUTHORIZED)
     
     def verify_google_token(self, access_token):
-        # Verify token using Google's API
         response = requests.get(
             'https://www.googleapis.com/oauth2/v3/userinfo',
             headers={'Authorization': f'Bearer {access_token}'}
@@ -356,13 +355,10 @@ class GoogleLoginView(APIView):
         email = user_info['email']
         name = user_info.get('name', '')
         
-        # Try to find existing user
         user = User.objects.filter(google_id=google_id).first()
         if user:
             return user, False
-        
-        # Create new user
-        
+                
         user = User.objects.create_user(
 
             email=email,
@@ -411,13 +407,14 @@ class SocialLoginView(APIView):
 
 
 
-
 class LogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        
+        refresh_token = request.data["refresh_token"]
         try:
-            refresh_token = request.data["refresh_token"]
+            
             if not refresh_token:
                 error_response = {
                     "status": "error",
@@ -425,6 +422,7 @@ class LogoutAPIView(APIView):
                     "message": "Refresh token is required."
                 }
                 return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
+           
             token = RefreshToken(refresh_token)
             token.blacklist()
             response = {
@@ -437,7 +435,8 @@ class LogoutAPIView(APIView):
             error_response = {
                 "status": "error",
                 "status_code": status.HTTP_400_BAD_REQUEST,
-                "message": "Invalid refresh token."
+                "message": "Invalid refresh token.",
+                "detail": str(e)
             }
             return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
         
@@ -450,7 +449,27 @@ class ChangePasswordView(APIView):
         
         old_password = request.data.get('old_password')
         new_password = request.data.get('new_password')
-        
+        confirm_password = request.data.get('confirm_password')
+
+        if new_password != confirm_password:
+            error_response = {
+                "status": "error",
+                "status_code": status.HTTP_400_BAD_REQUEST,
+                "message": "New password and confirm password do not match."
+            }
+            return Response({
+                "status": "error",
+                "status_code": status.HTTP_400_BAD_REQUEST,
+                "error": error_response
+            })
+
+        if not old_password or not new_password:
+            error_response = ({
+                "status": "error",
+                "status_code": status.HTTP_400_BAD_REQUEST,
+                "message": "New password and confirm password do not match."
+            })
+
         if not old_password or not new_password:
             error_response = {
                 "status": "error",
@@ -458,15 +477,19 @@ class ChangePasswordView(APIView):
                 "message": "Both old_password and new_password are required."
             }
             return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
-        
+
         if not user.check_password(old_password):
             error_response = {
                 "status": "error",
                 "status_code": status.HTTP_400_BAD_REQUEST,
                 "message": "Invalid old password."
             }
-            return Response(error_response, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({
+                "status": "error",
+                "error": error_response,
+                "status_code": status.HTTP_400_BAD_REQUEST
+            })
+
         user.set_password(new_password)
         user.save()
         

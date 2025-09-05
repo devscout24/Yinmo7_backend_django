@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractBaseUser,BaseUserManager,PermissionsMixin
 
 
+
 class UserManager(BaseUserManager):
     def create_user(self,email,password=None,**extra_fields):
         if not email:
@@ -66,7 +67,7 @@ class CarOwnerProfile(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True)
     phone = models.CharField(max_length=100, null=True, blank=True)
     location = models.CharField(max_length=100, null=True, blank=True)
-    image = models.FileField(upload_to='car_owner_profile_image', null=True, blank=True)
+    image = models.ImageField(upload_to='car_owner_profile_image', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -97,12 +98,16 @@ class RepairShopProfile(models.Model):
     contact_person_name = models.CharField(max_length=100, null=True, blank=True)
     phone = models.CharField(max_length=100, null=True, blank=True)
     location = models.CharField(max_length=100, null=True, blank=True)
-    image = models.FileField(upload_to='repair_shop_profile_image', null=True, blank=True)
-    total_reviews = models.IntegerField(default=0)
-    total_stars = models.IntegerField(default=0)
-    rating = models.FloatField(null=True, blank=True)  
+    logo = models.FileField(upload_to='repair_shop_profile_image', null=True, blank=True)
+    cover_image = models.FileField(upload_to='repair_shop_cover_image', null=True, blank=True)
+    charge_range = models.CharField(max_length=100, null=True, blank=True)
+
+    
+   
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
 
     @property
     def calculated_rating(self):
@@ -118,6 +123,13 @@ class RepairShopProfile(models.Model):
     def __str__(self):
         return f"{self.user.email}'s repair shop name is {self.shop_name} contact person name is {self.contact_person_name}"
 
+
+class RepairShopImage(models.Model):
+    shop = models.ForeignKey(RepairShopProfile, on_delete=models.CASCADE, related_name='cover_images')
+    image = models.ImageField(upload_to='repair_shop_cover_image')
+
+
+
 class RepairShopImage(models.Model):
     shop = models.ForeignKey(RepairShopProfile, on_delete=models.CASCADE, related_name='images')
     image = models.ImageField(upload_to='repair_shop_images/')
@@ -129,10 +141,19 @@ class RepairShopImage(models.Model):
     
 
 class RepairshopBesinessHour(models.Model):
+    DAYS_OF_WEEK = [
+    ('Sunday', 'Sunday'),
+    ('Monday', 'Monday'),
+    ('Tuesday', 'Tuesday'),
+    ('Wednesday', 'Wednesday'),
+    ('Thursday', 'Thursday'),
+    ('Friday', 'Friday'),
+    ('Saturday', 'Saturday'),
+]
     shop = models.ForeignKey(RepairShopProfile, on_delete=models.CASCADE, related_name='business_hours')
-    day = models.CharField(max_length=100, null=True, blank=True)
-    open_time = models.CharField(max_length=100, null=True, blank=True)
-    close_time = models.CharField(max_length=100, null=True, blank=True)
+    day = models.CharField(max_length=100, null=True, blank=True, choices=DAYS_OF_WEEK)
+    open_time = models.TimeField(null=True, blank=True)
+    close_time = models.TimeField(null=True, blank=True)
     is_open = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

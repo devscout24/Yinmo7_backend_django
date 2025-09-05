@@ -1,6 +1,6 @@
 from profile import Profile
 from django.contrib import admin
-from .models import User,UserSocialAuth,CarOwnerProfile,CarModel,RepairShopProfile
+from .models import RepairshopBesinessHour, User,UserSocialAuth,CarOwnerProfile,CarModel,RepairShopProfile
 
 # Register your models here.
 @admin.register(User)
@@ -37,3 +37,9 @@ class RepairShopProfileAdmin(admin.ModelAdmin):
     search_fields = ('user__username', 'shop_name', 'location')
     list_filter = ('location',)
     ordering = ('shop_name',)
+
+@admin.register(RepairshopBesinessHour)
+class RepairshopBesinessHourAdmin(admin.ModelAdmin):
+    list_display = ('id', 'shop', 'day', 'open_time', 'close_time', 'is_open')
+    search_fields = ('shop__user__email', 'day')
+    list_filter = ('shop', 'day', 'is_open')
